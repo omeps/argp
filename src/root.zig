@@ -23,8 +23,8 @@ pub fn allNullOptional(T: type) Optional(T) {
     }
     return ret;
 }
-pub fn parse(Args: type, default: Args, on: Optional(Args), input: []const [:0]const u8, arena: std.mem.Allocator, failing_arg: ?*usize) !Args {
-    var args = default;
+pub fn parse(Args: type, on: Optional(Args), input: []const [:0]const u8, arena: std.mem.Allocator, failing_arg: ?*usize) !Optional(Args) {
+    var args = allNullOptional(Args);
     const Fields = std.meta.FieldEnum(Args);
     for (input, 0..) |arg, i| {
         if (!std.mem.startsWith(u8, arg, "--")) return error.UnknownArgument;
@@ -58,8 +58,8 @@ test "parsing an arg" {
     const Args = struct {
         name: []const u8,
     };
-    const parsed = try parse(Args, Args{ .name = "default" }, .{ .name = null }, args, arena.allocator(), null);
-    try std.testing.expectEqualStrings("different", parsed.name);
+    const parsed = try parse(Args, .{ .name = "same" }, args, arena.allocator(), null);
+    try std.testing.expectEqualStrings("different", parsed.name.?);
 }
 test "no on value arg" {
     var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
@@ -68,6 +68,6 @@ test "no on value arg" {
     const Args = struct {
         i: usize,
     };
-    const parsed = try parse(Args, Args{ .i = 10 },  allNullOptional(Args), args, arena.allocator(), null);
-    try std.testing.expectEqual(100, parsed.i);
+    const parsed = try parse(Args, allNullOptional(Args), args, arena.allocator(), null);
+    try std.testing.expectEqual(100, parsed.i.?);
 }
