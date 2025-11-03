@@ -16,6 +16,13 @@ pub fn Optional(T: type) type {
         },
     });
 }
+pub fn allNullOptional(T: type) Optional(T) {
+    var ret: Optional(T) = undefined;
+    inline for (@typeInfo(Optional(T)).@"struct".fields) |f| {
+        @field(ret, f.name) = null;
+    }
+    return ret;
+}
 pub fn parse(Args: type, default: Args, on: Optional(Args), input: []const [:0]const u8, arena: std.mem.Allocator, failing_arg: ?*usize) !Args {
     var args = default;
     const Fields = std.meta.FieldEnum(Args);
@@ -53,4 +60,14 @@ test "parsing an arg" {
     };
     const parsed = try parse(Args, Args{ .name = "default" }, .{ .name = null }, args, arena.allocator(), null);
     try std.testing.expectEqualStrings("different", parsed.name);
+}
+test "no on value arg" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const args: []const [:0]const u8 = &.{"--i=100"};
+    const Args = struct {
+        i: usize,
+    };
+    const parsed = try parse(Args, Args{ .i = 10 },  allNullOptional(Args), args, arena.allocator(), null);
+    try std.testing.expectEqual(100, parsed.i);
 }
